@@ -1,0 +1,13 @@
+body {
+    font-family: 'Roboto', 'Noto Sans TC', sans-serif;
+    width: 100%;    
+    box-sizing: border-box; 
+    overflow-x: hidden !important;   
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}

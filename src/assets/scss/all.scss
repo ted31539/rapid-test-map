@@ -1,0 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Paytone+One&family=Roboto:wght@300;400;900&family=Satisfy&display=swap');
+@import "node_modules/bootstrap/scss/functions";
+@import "./helpers/variables";
+@import './helpers/utilities';
+@import "node_modules/bootstrap/scss/bootstrap";
+
+// project
+@import './base/base';
+// @import './components/components';
