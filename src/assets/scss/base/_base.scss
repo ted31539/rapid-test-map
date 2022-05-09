@@ -11,3 +11,12 @@ img {
     display: block;
     object-fit: cover;
 }
+
+input[type=checkbox] {
+    width: 20px;
+    height: 20px;
+}
+
+.btn-secondary:hover {
+    background: #ebff15a6 !important;
+}

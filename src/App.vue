@@ -1,27 +1,53 @@
 <template>
-  <div class="container">
-        <div id="map" class=""></div>
+  <div class="container-fluid">
+    <div
+      id="map"
+      class="position-relative"
+    >
+      <div class="d-flex flex-column position-absolute bottom-3 end-3 z-index-999">
+        <button
 
+          id=""
+          class="btn btn-primary rounded-circle shadow hvr-pulse-grow mb-4"
+          data-bs-toggle="tooltip" data-bs-placement="top" title="說明"
+        >
+          <i class="bi bi-patch-question-fill fs-3 text-danger"></i>
+        </button>
+        <button
+        type="button"
+          @click.stop="toMyLocation"
+          id="myLocationBtn"
+          class="btn btn-primary rounded-circle shadow hvr-pulse-grow mb-4"
+          data-bs-toggle="tooltip" data-bs-placement="top" title="前往我的位置"
+        >
+          <i class="bi bi-pin-map-fill fs-3 text-danger"></i>
+        </button>
+        <button
+        type="button"
+          @click.stop="openSidebar"
+          id="sidebarOpenBtn"
+          class="btn btn-primary rounded-circle shadow hvr-pulse-grow"
+          data-bs-toggle="tooltip" data-bs-placement="top" title="查詢"
+        >
+          <i class="bi bi-grid-3x3-gap fs-3 text-danger"></i>
+        </button>
+      </div>
+      <Offcanvas
+      @search="a"
+      ref="sidebar" />
+    </div>
   </div>
 </template>
 
 <script>
 import L from 'leaflet';
 import 'leaflet.markercluster/dist/leaflet.markercluster';
+import Offcanvas from './components/Offcanvas.vue';
 
 let osmMap = {};
 const greenIcon = new L.Icon({
   iconUrl:
     'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-const redIcon = new L.Icon({
-  iconUrl:
-    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
@@ -37,10 +63,28 @@ const yellowIcon = new L.Icon({
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
 });
+const redIcon = new L.Icon({
+  iconUrl:
+    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+const blueIcon = new L.Icon({
+  iconUrl:
+    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [37.5, 61.5],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
 
 export default {
   name: 'App',
-  components: {},
+  components: { Offcanvas },
   data() {
     return {
       rapidTestData: [],
@@ -48,9 +92,13 @@ export default {
         latitude: 22.6417929,
         longitude: 120.3320082,
       },
+      myLocationMarker: null,
     };
   },
   methods: {
+    a(a) {
+      console.log(a);
+    },
     getPharmacyData() {
       const url = 'https://raw.githubusercontent.com/SiongSng/Rapid-Antigen-Test-Taiwan-Map/data/data/antigen_open_street_map.json';
       return this.$http
@@ -63,6 +111,7 @@ export default {
         center: [this.location.latitude, this.location.longitude],
         zoom: 16,
       });
+      L.control.scale().addTo(osmMap);
     },
     addMapLayer() {
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -82,7 +131,12 @@ export default {
       const markers = new L.MarkerClusterGroup().addTo(osmMap);
       const myLocation = L.latLng(this.location.latitude, this.location.longitude);
 
-      this.greenfliterData.forEach((pharmacy) => {
+      this.myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
+        icon: blueIcon,
+      }).addTo(osmMap).bindPopup(`
+      <div><p class="fs-5 text-danger fw-bold text-shadow-white pt-4"><i class="bi bi-emoji-laughing-fill me-1"></i>我的位置</p></div>`);
+
+      this.fullfliterData.forEach((pharmacy) => {
         const { geometry, properties } = pharmacy;
         const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
           icon: greenIcon,
@@ -135,7 +189,7 @@ export default {
           ),
         );
       });
-      this.redfliterData.forEach((pharmacy) => {
+      this.nonefliterData.forEach((pharmacy) => {
         const { geometry, properties } = pharmacy;
         const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
           icon: redIcon,
@@ -189,7 +243,7 @@ export default {
         );
       });
 
-      this.yellowfliterData.forEach((pharmacy) => {
+      this.lowfliterData.forEach((pharmacy) => {
         const { geometry, properties } = pharmacy;
         const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
           icon: yellowIcon,
@@ -245,6 +299,17 @@ export default {
 
       osmMap.addLayer(markers);
     },
+    toMyLocation() {
+      this.getCurrentPosition().then((position) => {
+        this.location.latitude = position.coords.latitude;
+        this.location.longitude = position.coords.longitude;
+        osmMap.setView([this.location.latitude, this.location.longitude], 16);
+        this.myLocationMarker.openPopup();
+      });
+    },
+    openSidebar() {
+      this.$refs.sidebar.openOffcanvas();
+    },
   },
   computed: {
     filterData() {
@@ -252,15 +317,15 @@ export default {
         (pharmacy) => !pharmacy.properties.address.search('高雄市三民區大昌二路２４８號'),
       );
     },
-    redfliterData() {
+    nonefliterData() {
       return this.rapidTestData.filter((pharmacy) => pharmacy.properties.count === 0);
     },
-    yellowfliterData() {
+    lowfliterData() {
       return this.rapidTestData.filter(
         (pharmacy) => pharmacy.properties.count > 0 && pharmacy.properties.count < 50,
       );
     },
-    greenfliterData() {
+    fullfliterData() {
       return this.rapidTestData.filter((pharmacy) => pharmacy.properties.count >= 50);
     },
   },
