@@ -86,7 +86,10 @@ $theme-colors: (
   "warning":    $warning,
   "danger":     $danger,
   "light":      $light,
-  "dark":       $dark
+  "dark":       $dark,
+  "full":       #08a84b,
+  "low":        #f3d007,
+  "none":        #9e1c1c,
 ) !default;
 // scss-docs-end theme-colors-map
 

@@ -27,6 +27,7 @@
             class="text-white"
           >城市</label>
           <select
+            @change="area = '', road = ''"
             v-model="city"
             id="citySelected"
             class="form-select"
@@ -49,6 +50,7 @@
             class="text-white"
           >鄉/市/鎮/區/鄉</label>
           <select
+            @change="road = ''"
             v-model="area"
             id="citySelected"
             class="form-select"
@@ -106,7 +108,7 @@
           <p class="text-white mb-2">全選</p>
           <input
             id="quantitySelect-all"
-            v-model="quantitySelect"
+            v-model="pharmacySelect"
             type="checkbox"
             name="quantitySelect"
             value="all"
@@ -125,7 +127,7 @@
           <p class="text-white mb-2">不足</p>
           <input
             id="quantitySelect-none"
-            v-model="quantitySelect"
+            v-model="pharmacySelect"
             type="checkbox"
             name="quantitySelect"
             value="none"
@@ -144,7 +146,7 @@
           <p class="text-white mb-2">少量</p>
           <input
             id="quantitySelect-low"
-            v-model="quantitySelect"
+            v-model="pharmacySelect"
             type="checkbox"
             name="quantitySelect"
             value="low"
@@ -163,7 +165,7 @@
           <p class="text-white mb-2">充足</p>
           <input
             id="quantitySelect-full"
-            v-model="quantitySelect"
+            v-model="pharmacySelect"
             type="checkbox"
             name="quantitySelect"
             value="full"
@@ -171,17 +173,80 @@
         </label>
       </div>
       <button
-      @click.stop="search"
-      type="button" class="btn  btn-secondary w-100 text-white
-      text-shadow-white fw-bold">搜尋</button>
+        @click.stop="search"
+        type="button"
+        class="btn  btn-secondary w-100 text-white
+      text-shadow-white fw-bold"
+      >搜尋</button>
     </div>
-    <div class="offcanvas-body">
-
+    <div class="offcanvas-body overflow-y-scroll px-1">
+      <ul class="list-unstyled">
+        <li
+        v-for="pharmacy in searchData.full" :key="pharmacy.properties.latitude"
+        class="d-flex bg-success text-white shadow hvr-float px-4 py-2 mb-3">
+          <div class="w-70">
+            <div class="d-flex align-items-center mb-1">
+              <h3 class="mb-0">{{pharmacy.properties.name}}</h3>
+              <span class="badge bg-primary ms-1">
+                {{ myLocation.distanceTo(
+                  [pharmacy.properties.latitude, pharmacy.properties.longitude])
+                  .toPrecision(2) / 1000}}
+                  公里</span>
+            </div>
+            <div>
+              <a class="text-decoration-none text-white mb-1">
+                {{pharmacy.properties.address}}</a>
+              <p class="mb-1">{{pharmacy.properties.phone}}</p>
+            </div>
+          </div>
+          <p class="badge bg-full rounded-circle d-flex flex-column justify-content-center
+          position-relative ms-1 mb-0 w-30">
+            <span class="d-block fs-7 position-absolute top-5 start-50 translate-middle-x">
+              羅氏:</span>
+            <span class="d-block fs-1 text-shadow-white">
+              {{pharmacy.properties.count}} <small class="fs-6">份</small>
+            </span>
+          </p>
+        </li>
+        <li class="d-flex bg-success text-white shadow hvr-float px-4 py-2 mb-1">
+          <div>
+            <div class="d-flex align-items-center mb-1">
+              <h3 class="mb-0">我我藥局</h3>
+              <span class="badge bg-primary ms-1">0.5 公里</span>
+            </div>
+            <div class="">
+              <a class="text-decoration-none text-white mb-1">高雄市鳳山區光復路二段269之8號9樓</a>
+              <p class="mb-1">077999125</p>
+            </div>
+          </div>
+          <p class="badge bg-low rounded-circle d-flex flex-column ms-1 mb-0">
+            <span class="d-block fs-7 mt-1 mb-3">羅氏:</span>
+            <span class="d-block flex-grow-1 fs-1 text-white text-shadow-white">0.5 份</span>
+          </p>
+        </li>
+        <li class="d-flex bg-success text-white shadow hvr-float px-4 py-2 mb-1">
+          <div>
+            <div class="d-flex align-items-center mb-1">
+              <h3 class="mb-0">我我藥局</h3>
+              <span class="badge bg-primary ms-1">0.5 公里</span>
+            </div>
+            <div class="">
+              <a class="text-decoration-none text-white mb-1">高雄市鳳山區光復路二段269之8號9樓</a>
+              <p class="mb-1">077999125</p>
+            </div>
+          </div>
+          <p class="badge bg-none rounded-circle d-flex flex-column ms-1 mb-0">
+            <span class="d-block fs-7 mt-1 mb-3">羅氏:</span>
+            <span class="d-block flex-grow-1 fs-1 text-white text-shadow-white">0.5 份</span>
+          </p>
+        </li>
+      </ul>
     </div>
   </div>
 </template>
 
 <script>
+import L from 'leaflet';
 import Offcanvas from 'bootstrap/js/dist/offcanvas';
 import mapData from '../../public/mapData/AllData.json';
 
@@ -189,14 +254,29 @@ export default {
   data() {
     return {
       offcanvas: null,
-      quantitySelect: ['all', 'none', 'low', 'full'],
+      pharmacySelect: ['all', 'none', 'low', 'full'],
       city: '全臺',
       area: '',
       road: '',
       mapData,
       cityData: [],
       areaData: [],
+      filterData: [],
     };
+  },
+  props: {
+    searchData: {
+      type: Object,
+      default() {
+        return {};
+      },
+    },
+    location: {
+      type: Object,
+      default() {
+        return {};
+      },
+    },
   },
   methods: {
     openOffcanvas() {
@@ -206,7 +286,13 @@ export default {
       this.offcanvas.hide();
     },
     search() {
-      this.$emit('search', { quantitySelect: this.quantitySelect, locationText: this.locationText });
+      if (!this.pharmacySelect.length) {
+        this.pharmacySelect = ['all', 'none', 'low', 'full'];
+      }
+      this.$emit('search', {
+        pharmacySelect: this.pharmacySelect,
+        locationText: this.locationText,
+      });
     },
   },
   watch: {
@@ -226,23 +312,33 @@ export default {
       }
       this.areaData = this.cityData[0].AreaList.filter((area) => area.AreaName === this.area);
     },
-    quantitySelect(n, o) {
+    pharmacySelect(n, o) {
       if (n.includes('all')) {
-        this.quantitySelect.push('none', 'low', 'full');
+        this.pharmacySelect.push('none', 'low', 'full');
         return;
       }
       if (!n.includes('all') && o.includes('all')) {
-        this.quantitySelect = [];
+        this.pharmacySelect = [];
         return;
       }
       if (n.includes('none') && n.includes('low') && n.includes('full')) {
-        this.quantitySelect.push('all');
+        this.pharmacySelect.push('all');
       }
+    },
+    searchData() {
+      this.filterData = [...this.searchData];
     },
   },
   computed: {
     locationText() {
-      return this.city + this.area + this.road;
+      return {
+        city: this.city,
+        area: this.area,
+        road: this.road,
+      };
+    },
+    myLocation() {
+      return L.latLng(this.location.latitude, this.location.longitude);
     },
   },
   mounted() {

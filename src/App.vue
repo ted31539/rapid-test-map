@@ -6,7 +6,6 @@
     >
       <div class="d-flex flex-column position-absolute bottom-3 end-3 z-index-999">
         <button
-
           id=""
           class="btn btn-primary rounded-circle shadow hvr-pulse-grow mb-4"
           data-bs-toggle="tooltip" data-bs-placement="top" title="說明"
@@ -33,8 +32,16 @@
         </button>
       </div>
       <Offcanvas
-      @search="a"
+      @click.stop=""
+      @search="search"
+      :searchData="searchData"
+      :location="location"
       ref="sidebar" />
+      <MessageModal
+      @click.stop=""
+      :message="message"
+      ref="modal"
+      />
     </div>
   </div>
 </template>
@@ -43,8 +50,10 @@
 import L from 'leaflet';
 import 'leaflet.markercluster/dist/leaflet.markercluster';
 import Offcanvas from './components/Offcanvas.vue';
+import MessageModal from './components/MessageModal.vue';
 
 let osmMap = {};
+let markers = null;
 const greenIcon = new L.Icon({
   iconUrl:
     'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
@@ -84,7 +93,7 @@ const blueIcon = new L.Icon({
 
 export default {
   name: 'App',
-  components: { Offcanvas },
+  components: { Offcanvas, MessageModal },
   data() {
     return {
       rapidTestData: [],
@@ -93,11 +102,123 @@ export default {
         longitude: 120.3320082,
       },
       myLocationMarker: null,
+      message: [],
+      searchData: {
+        full: [],
+        low: [],
+        none: [],
+      },
     };
   },
   methods: {
-    a(a) {
-      console.log(a);
+    search(searchContent) {
+      this.searchData = {
+        full: [],
+        low: [],
+        none: [],
+      };
+      const { locationText, pharmacySelect } = searchContent;
+      console.log(locationText, pharmacySelect);
+
+      let tempSearchData = [];
+      let outcomeCaculte = [];
+      let pharmacyLocation = [];
+
+      if (locationText.city === '全臺') {
+        if (pharmacySelect.includes('full')) {
+          this.searchData.full = this.fullfliterData;
+          const text = `快篩充足的藥局共 ${this.searchData.full.length} 家`;
+          outcomeCaculte.push(text);
+        }
+        if (pharmacySelect.includes('low')) {
+          this.searchData.low = this.lowfliterData;
+          const text = `快篩少量的藥局共 ${this.searchData.low.length} 家`;
+          outcomeCaculte.push(text);
+        }
+        if (pharmacySelect.includes('none')) {
+          this.searchData.none = this.nonefliterData;
+          const text = `快篩不足的藥局共 ${this.searchData.none.length} 家`;
+          outcomeCaculte.push(text);
+        }
+        console.log('全臺', this.searchData);
+      }
+
+      if (locationText.city !== '全臺') {
+        tempSearchData = this.rapidTestData.filter(
+          (pharmacy) => pharmacy.properties.address.includes(locationText.city),
+        );
+        console.log('城市', tempSearchData);
+        if (locationText.area.length) {
+          tempSearchData = tempSearchData.filter(
+            (pharmacy) => pharmacy.properties.address.includes(locationText.area),
+          );
+          console.log('鄉鎮市區', tempSearchData);
+          if (locationText.road.length) {
+            tempSearchData = tempSearchData.filter(
+              (pharmacy) => pharmacy.properties.address.includes(locationText.road),
+            );
+            console.log('路巷村莊', tempSearchData);
+          }
+        }
+
+        console.log('分配資料了');
+        if (pharmacySelect.includes('full')) {
+          this.searchData.full = tempSearchData.filter(
+            (pharmacy) => pharmacy.properties.count >= 38,
+          );
+          const text = `快篩充足的藥局共 ${this.searchData.full.length} 家`;
+          outcomeCaculte.push(text);
+        }
+        if (pharmacySelect.includes('low')) {
+          this.searchData.low = tempSearchData.filter(
+            (pharmacy) => pharmacy.properties.count > 0 && pharmacy.properties.count < 38,
+          );
+          const text = `快篩少量的藥局共 ${this.searchData.low.length} 家`;
+          outcomeCaculte.push(text);
+        }
+        if (pharmacySelect.includes('none')) {
+          this.searchData.none = tempSearchData.filter(
+            (pharmacy) => pharmacy.properties.count === 0,
+          );
+          const text = `快篩不足的藥局共 ${this.searchData.none.length} 家`;
+          outcomeCaculte.push(text);
+        }
+      }
+
+      console.log(pharmacyLocation);
+
+      console.log('分類完成', this.searchData);
+      if (!this.searchData.full.length && !this.searchData.low.length
+      && !this.searchData.none.length) {
+        outcomeCaculte = ['拍謝，沒有符合條件的藥局!!'];
+        this.message = outcomeCaculte;
+        this.$refs.modal.openModal();
+      } else {
+        if (pharmacySelect.includes('none')) {
+          pharmacyLocation = [];
+          pharmacyLocation = [this.searchData.none[0].geometry.coordinates[1],
+            this.searchData.none[0].geometry.coordinates[0],
+          ];
+        }
+        if (pharmacySelect.includes('low')) {
+          pharmacyLocation = [];
+          pharmacyLocation = [this.searchData.low[0].geometry.coordinates[1],
+            this.searchData.low[0].geometry.coordinates[0],
+          ];
+        }
+        if (pharmacySelect.includes('full')) {
+          pharmacyLocation = [];
+          pharmacyLocation = [this.searchData.full[0].geometry.coordinates[1],
+            this.searchData.full[0].geometry.coordinates[0],
+          ];
+        }
+
+        this.message = outcomeCaculte;
+        console.log(outcomeCaculte);
+        this.addMapMarkers(this.searchData);
+        this.panToLocation(pharmacyLocation);
+        this.$refs.modal.openModal();
+      }
     },
     getPharmacyData() {
       const url = 'https://raw.githubusercontent.com/SiongSng/Rapid-Antigen-Test-Taiwan-Map/data/data/antigen_open_street_map.json';
@@ -105,6 +226,11 @@ export default {
         .get(url)
         .then((res) => res.data.features)
         .catch((err) => err);
+    },
+    sortPharmacyData() {
+      this.searchData.full = this.fullfliterData;
+      this.searchData.low = this.lowfliterData;
+      this.searchData.none = this.nonefliterData;
     },
     initMap() {
       osmMap = L.map('map', {
@@ -127,8 +253,16 @@ export default {
         );
       });
     },
-    addMapMarkers() {
-      const markers = new L.MarkerClusterGroup().addTo(osmMap);
+    addMapMarkers(filterAry = {
+      full: this.fullfliterData,
+      low: this.lowfliterData,
+      none: this.nonefliterData,
+    }) {
+      if (markers) {
+        osmMap.removeLayer(markers);
+      }
+
+      markers = new L.MarkerClusterGroup().addTo(osmMap);
       const myLocation = L.latLng(this.location.latitude, this.location.longitude);
 
       this.myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
@@ -136,14 +270,15 @@ export default {
       }).addTo(osmMap).bindPopup(`
       <div><p class="fs-5 text-danger fw-bold text-shadow-white pt-4"><i class="bi bi-emoji-laughing-fill me-1"></i>我的位置</p></div>`);
 
-      this.fullfliterData.forEach((pharmacy) => {
-        const { geometry, properties } = pharmacy;
-        const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
-          icon: greenIcon,
-        });
-        markers.addLayer(
-          marker.bindPopup(
-            `<table class="table d-flex flex-column table-borderless">
+      function addFullMarkers() {
+        filterAry.full.forEach((pharmacy) => {
+          const { geometry, properties } = pharmacy;
+          const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
+            icon: greenIcon,
+          });
+          markers.addLayer(
+            marker.bindPopup(
+              `<table class="table d-flex flex-column table-borderless">
               <tbody>
               <tr class="row g-0 mb-4">
                   <th class="col-12 text-shadow-white text-break px-0"><h3 class="d-flex fw-bold text-white mb-0">${
@@ -186,17 +321,19 @@ export default {
                 </tr>
               </tbody>
             </table>`,
-          ),
-        );
-      });
-      this.nonefliterData.forEach((pharmacy) => {
-        const { geometry, properties } = pharmacy;
-        const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
-          icon: redIcon,
+            ),
+          );
         });
-        markers.addLayer(
-          marker.bindPopup(
-            `<table class="table d-flex flex-column table-borderless">
+      }
+      function addNoneMarkers() {
+        filterAry.none.forEach((pharmacy) => {
+          const { geometry, properties } = pharmacy;
+          const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
+            icon: redIcon,
+          });
+          markers.addLayer(
+            marker.bindPopup(
+              `<table class="table d-flex flex-column table-borderless">
               <tbody>
               <tr class="row g-0 mb-4">
                   <th class="col-12 text-shadow-white text-break px-0"><h3 class="d-flex fw-bold text-white mb-0">${
@@ -239,64 +376,70 @@ export default {
                 </tr>
               </tbody>
             </table>`,
-          ),
-        );
-      });
+            ),
+          );
+        });
+      }
+      function addLowMarkers() {
+        filterAry.low.forEach((pharmacy) => {
+          const { geometry, properties } = pharmacy;
+          const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
+            icon: yellowIcon,
+          });
+          markers.addLayer(
+            marker.bindPopup(
+              `<table class="table d-flex flex-column table-borderless">
+              <tbody>
+              <tr class="row g-0 mb-4">
+                  <th class="col-12 text-shadow-white text-break px-0"><h3 class="d-flex fw-bold text-white mb-0">${
+  properties.name
+}<span class="badge bg-primary fs-7 align-self-end h-50 ms-1">${
+  myLocation.distanceTo(marker.getLatLng()).toPrecision(2) / 1000
+} 公里</span></h3></th>
+              </tr>
+              <tr class="row g-0">
+                <td class="px-0 z-index-4">
+                  <div class="badge rounded-circle bg-secondary d-flex justify-content-around align-items-center
+                  fs-6 fw-blod text-primary text-shadow text-break w-100 position-relative z-index-4 px-0 py-2">
+                    <span class="z-index-4">剩</span>
+                    <span class="display-1 z-index-4">${properties.count}</span>
+                    <span class="z-index-4 ms-2">組</span>
+                    <div class="badge bg-warning display-6 fw-bolder text-shadow text-break opacity-75
+                    position-absolute top-0 start-50 translate-middle z-index-4">
+                    ${properties.brands[0].search('羅氏') >= 0 ? '羅氏快篩' : '品牌未知'}</div>
+                </td>
+              </tr>
+              <tr class="row g-0">
+                <td class="fs-7 fw-bolder text-white text-center text-shadow-white text-break px-0 z-index-4">${
+  properties.note === null ? '無註備' : properties.note
+}</td>
+              </tr>
+              </tr>
+                <tr class="row g-0">
+                  <td class="text-shadow text-break text-center d-flex flex-column align-items-center px-0"><a class="text-white text-decoration-none z-index-4" href="https://www.google.com.tw/maps/place/${
+  properties.address
+}" target="_blank">${properties.address}</a></td>
+                </tr>
+                <tr class="row g-0 mb-4">
+                  <td class="text-shadow text-white text-break text-center d-flex flex-column align-items-center px-0 z-index-4">${
+  properties.phone
+}</td>
+                </tr>
+                <tr class="row g-0">
+                  <td class="d-flex justify-content-center text-break fst-italic text-light p-0"><small class="opacity-50 z-index-4">最後更新時間： ${
+  properties.updated_at
+}</small></td>
+                </tr>
+              </tbody>
+            </table>`,
+            ),
+          );
+        });
+      }
 
-      this.lowfliterData.forEach((pharmacy) => {
-        const { geometry, properties } = pharmacy;
-        const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
-          icon: yellowIcon,
-        });
-        markers.addLayer(
-          marker.bindPopup(
-            `<table class="table d-flex flex-column table-borderless">
-              <tbody>
-              <tr class="row g-0 mb-4">
-                  <th class="col-12 text-shadow-white text-break px-0"><h3 class="d-flex fw-bold text-white mb-0">${
-  properties.name
-}<span class="badge bg-primary fs-7 align-self-end h-50 ms-1">${
-  myLocation.distanceTo(marker.getLatLng()).toPrecision(2) / 1000
-} 公里</span></h3></th>
-              </tr>
-              <tr class="row g-0">
-                <td class="px-0 z-index-4">
-                  <div class="badge rounded-circle bg-secondary d-flex justify-content-around align-items-center
-                  fs-6 fw-blod text-primary text-shadow text-break w-100 position-relative z-index-4 px-0 py-2">
-                    <span class="z-index-4">剩</span>
-                    <span class="display-1 z-index-4">${properties.count}</span>
-                    <span class="z-index-4 ms-2">組</span>
-                    <div class="badge bg-warning display-6 fw-bolder text-shadow text-break opacity-75
-                    position-absolute top-0 start-50 translate-middle z-index-4">
-                    ${properties.brands[0].search('羅氏') >= 0 ? '羅氏快篩' : '品牌未知'}</div>
-                </td>
-              <tr class="row g-0">
-                <td class="fs-7 fw-bolder text-white text-center text-shadow-white text-break px-0 z-index-4">${
-  properties.note === null ? '無註備' : properties.note
-}</td>
-              </tr>
-              </tr>
-                <tr class="row g-0">
-                  <td class="text-shadow text-break text-center d-flex flex-column align-items-center px-0"><a class="text-white text-decoration-none z-index-4" href="https://www.google.com.tw/maps/place/${
-  properties.address
-}" target="_blank">${properties.address}</a></td>
-                </tr>
-                <tr class="row g-0 mb-4">
-                  <td class="text-shadow text-white text-break text-center d-flex flex-column align-items-center px-0 z-index-4">${
-  properties.phone
-}</td>
-                </tr>
-                <tr class="row g-0">
-                  <td class="d-flex justify-content-center text-break fst-italic text-light p-0"><small class="opacity-50 z-index-4">最後更新時間： ${
-  properties.updated_at
-}</small></td>
-                </tr>
-              </tbody>
-            </table>`,
-          ),
-        );
-      });
-
+      addNoneMarkers.bind(this)();
+      addLowMarkers.bind(this)();
+      addFullMarkers.bind(this)();
       osmMap.addLayer(markers);
     },
     toMyLocation() {
@@ -307,26 +450,24 @@ export default {
         this.myLocationMarker.openPopup();
       });
     },
+    panToLocation(location) {
+      osmMap.setView(location, 16);
+    },
     openSidebar() {
       this.$refs.sidebar.openOffcanvas();
     },
   },
   computed: {
-    filterData() {
-      return this.rapidTestData.filter(
-        (pharmacy) => !pharmacy.properties.address.search('高雄市三民區大昌二路２４８號'),
-      );
-    },
     nonefliterData() {
       return this.rapidTestData.filter((pharmacy) => pharmacy.properties.count === 0);
     },
     lowfliterData() {
       return this.rapidTestData.filter(
-        (pharmacy) => pharmacy.properties.count > 0 && pharmacy.properties.count < 50,
+        (pharmacy) => pharmacy.properties.count > 0 && pharmacy.properties.count < 38,
       );
     },
     fullfliterData() {
-      return this.rapidTestData.filter((pharmacy) => pharmacy.properties.count >= 50);
+      return this.rapidTestData.filter((pharmacy) => pharmacy.properties.count >= 38);
     },
   },
   created() {},
@@ -337,6 +478,7 @@ export default {
         this.location.latitude = position.coords.latitude;
         this.location.longitude = position.coords.longitude;
         this.rapidTestData = await this.getPharmacyData();
+        this.sortPharmacyData();
         this.initMap();
         this.addMapLayer();
         this.addMapMarkers();
@@ -350,6 +492,8 @@ export default {
 </script>
 
 <style lang="scss">
+@import '../node_modules/leaflet.markercluster/dist/MarkerCluster.Default.css';
+@import '../node_modules/leaflet.markercluster/dist/MarkerCluster.css';
 @import './assets/scss/all';
 
 #map {
