@@ -10,6 +10,7 @@
       <div class="d-flex justify-content-between w-100 mb-3">
         <div>
           <button
+          @click="removeSidebarOpenBtnClass"
             type="button"
             class="btn text-white hvr-float p-0 me-2"
             data-bs-dismiss="offcanvas"
@@ -265,6 +266,9 @@ export default {
     closeOffcanvas() {
       this.offcanvas.hide();
     },
+    removeSidebarOpenBtnClass() {
+      document.querySelector('#sidebarOpenBtn').classList.remove('roll-away');
+    },
     search() {
       if (!this.pharmacySelect.length) {
         this.pharmacySelect = ['all', 'none', 'low', 'full'];
@@ -285,7 +289,7 @@ export default {
         this.area = '';
         return;
       }
-      this.cityData = this.mapData.filter((city) => city.CityName === this.city);
+      this.cityData = mapData.filter((city) => city.CityName === this.city);
     },
     area() {
       if (this.city === '全臺') {

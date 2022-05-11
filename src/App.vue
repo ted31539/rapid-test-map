@@ -14,13 +14,13 @@
           data-bs-placement="top"
           title="前往我的位置"
         >
-          <i class="bi bi-pin-map-fill fs-3 text-danger"></i>
+          <i class="bi bi-pin-map-fill fs-3 text-danger hvr-pulse-grow"></i>
         </button>
         <button
           type="button"
           @click.stop="openSidebar"
           id="sidebarOpenBtn"
-          class="btn btn-primary rounded-circle shadow hvr-pulse-grow"
+          class="btn btn-primary rounded-circle shadow hvr-pulse-grow a"
           data-bs-toggle="tooltip"
           data-bs-placement="top"
           title="查詢"
@@ -29,6 +29,7 @@
         </button>
       </div>
       <Offcanvas
+      class=""
         @click.stop=""
         @search="search"
         @to-my-location="toMyLocation"
@@ -528,7 +529,10 @@ export default {
       osmMap.setView(location, 16);
     },
     openSidebar() {
-      this.$refs.sidebar.openOffcanvas();
+      document.querySelector('#sidebarOpenBtn').classList.add('roll-away');
+      setTimeout(() => {
+        this.$refs.sidebar.openOffcanvas();
+      }, 400);
     },
     welcomeMessage() {
       this.message = ['歡迎使用快篩地圖',
@@ -701,5 +705,4 @@ export default {
   }
   margin-bottom: 8px;
 }
-
 </style>
