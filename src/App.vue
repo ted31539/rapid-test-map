@@ -6,33 +6,39 @@
     >
       <div class="d-flex flex-column position-absolute bottom-3 end-3 z-index-999">
         <button
-        type="button"
+          type="button"
           @click.stop="toMyLocation"
           id="myLocationBtn"
           class="btn btn-primary rounded-circle shadow hvr-pulse-grow mb-4"
-          data-bs-toggle="tooltip" data-bs-placement="top" title="前往我的位置"
+          data-bs-toggle="tooltip"
+          data-bs-placement="top"
+          title="前往我的位置"
         >
           <i class="bi bi-pin-map-fill fs-3 text-danger"></i>
         </button>
         <button
-        type="button"
+          type="button"
           @click.stop="openSidebar"
           id="sidebarOpenBtn"
           class="btn btn-primary rounded-circle shadow hvr-pulse-grow"
-          data-bs-toggle="tooltip" data-bs-placement="top" title="查詢"
+          data-bs-toggle="tooltip"
+          data-bs-placement="top"
+          title="查詢"
         >
           <i class="bi bi-grid-3x3-gap fs-3 text-danger"></i>
         </button>
       </div>
       <Offcanvas
-      @click.stop=""
-      @search="search"
-      :pharmacyNum="pharmacyNum"
-      ref="sidebar" />
+        @click.stop=""
+        @search="search"
+        @to-my-location="toMyLocation"
+        :pharmacyNum="pharmacyNum"
+        ref="sidebar"
+      />
       <MessageModal
-      @click.stop=""
-      :message="message"
-      ref="modal"
+        @click.stop=""
+        :message="message"
+        ref="modal"
       />
     </div>
   </div>
@@ -47,6 +53,13 @@ import MessageModal from './components/MessageModal.vue';
 
 let osmMap = {};
 let markers = null;
+let layerControl = null;
+let fullMarkerAry = [];
+let lowMarkerAry = [];
+let noneMarkerAry = [];
+let fullLayerGroup = null;
+let lowLayerGroup = null;
+let noneLayerGroup = null;
 // const full = [];
 // const low = [];
 
@@ -185,8 +198,11 @@ export default {
       console.log(pharmacyLocation);
 
       console.log('分類完成', this.searchData);
-      if (!this.searchData.full.length && !this.searchData.low.length
-      && !this.searchData.none.length) {
+      if (
+        !this.searchData.full.length
+        && !this.searchData.low.length
+        && !this.searchData.none.length
+      ) {
         outcomeCaculte = ['拍謝，沒有符合條件的藥局!!'];
         this.message = outcomeCaculte;
         this.$refs.modal.openModal();
@@ -194,7 +210,8 @@ export default {
         if (pharmacySelect.includes('none')) {
           if (this.searchData.none.length) {
             pharmacyLocation = [];
-            pharmacyLocation = [this.searchData.none[0].geometry.coordinates[1],
+            pharmacyLocation = [
+              this.searchData.none[0].geometry.coordinates[1],
               this.searchData.none[0].geometry.coordinates[0],
             ];
             console.log('找到沒有塊篩的藥局位置', pharmacyLocation);
@@ -203,7 +220,8 @@ export default {
         if (pharmacySelect.includes('low')) {
           if (this.searchData.low.length) {
             pharmacyLocation = [];
-            pharmacyLocation = [this.searchData.low[0].geometry.coordinates[1],
+            pharmacyLocation = [
+              this.searchData.low[0].geometry.coordinates[1],
               this.searchData.low[0].geometry.coordinates[0],
             ];
           }
@@ -211,7 +229,8 @@ export default {
         if (pharmacySelect.includes('full')) {
           if (this.searchData.full.length) {
             pharmacyLocation = [];
-            pharmacyLocation = [this.searchData.full[0].geometry.coordinates[1],
+            pharmacyLocation = [
+              this.searchData.full[0].geometry.coordinates[1],
               this.searchData.full[0].geometry.coordinates[0],
             ];
           }
@@ -234,7 +253,10 @@ export default {
       return this.$http
         .get(url)
         .then((res) => res.data.features)
-        .catch((err) => err);
+        .catch(() => {
+          this.message = ['抱歉，發生錯誤，請重新整理'];
+          this.$refs.modal.openModal();
+        });
     },
     sortPharmacyData() {
       this.searchData.full = this.fullfliterData;
@@ -255,23 +277,48 @@ export default {
       L.control.scale().addTo(osmMap);
     },
     getCurrentPosition() {
-      return new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (position) => resolve(position),
-          (error) => reject(error),
-        );
-      });
+      let res;
+      if ('geolocation' in navigator) {
+        res = new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => resolve(position),
+            (error) => reject(error),
+          );
+        });
+      } else {
+        this.message = ['抱歉，無法取得您的所在，請檢查您的裝置'];
+        this.$refs.modal.openModal();
+      }
+      return res;
+      /* geolocation IS NOT available */
     },
-    addMapMarkers(filterAry = {
-      full: this.fullfliterData,
-      low: this.lowfliterData,
-      none: this.nonefliterData,
-    }) {
+    addMapMarkers(
+      filterAry = {
+        full: this.fullfliterData,
+        low: this.lowfliterData,
+        none: this.nonefliterData,
+      },
+    ) {
       if (markers) {
-        osmMap.removeLayer(markers);
+        markers.checkOut(fullLayerGroup);
+        markers.checkOut(lowLayerGroup);
+        markers.checkOut(noneLayerGroup);
+        osmMap.removeLayer(fullLayerGroup);
+        osmMap.removeLayer(lowLayerGroup);
+        osmMap.removeLayer(noneLayerGroup);
+        osmMap.removeControl(layerControl);
+        layerControl = null;
+        markers = null;
+        fullLayerGroup = null;
+        lowLayerGroup = null;
+        noneLayerGroup = null;
+        fullMarkerAry = [];
+        lowMarkerAry = [];
+        noneMarkerAry = [];
       }
 
-      markers = new L.MarkerClusterGroup().addTo(osmMap);
+      markers = L.markerClusterGroup.layerSupport();
+      layerControl = L.control.layers().addTo(osmMap);
       const myLocation = L.latLng(this.location.latitude, this.location.longitude);
 
       this.myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
@@ -285,9 +332,8 @@ export default {
           const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
             icon: greenIcon,
           });
-          markers.addLayer(
-            marker.bindPopup(
-              `<table class="table d-flex flex-column table-borderless">
+          marker.bindPopup(
+            `<table class="table d-flex flex-column table-borderless">
               <tbody>
               <tr class="row g-0 mb-4">
                   <th class="col-12 text-shadow-white text-break px-0"><h3 class="d-flex fw-bold text-white mb-0">${
@@ -330,64 +376,16 @@ export default {
                 </tr>
               </tbody>
             </table>`,
-            ),
           );
+          fullMarkerAry.push(marker);
         });
-      }
-      function addNoneMarkers() {
-        filterAry.none.forEach((pharmacy) => {
-          const { geometry, properties } = pharmacy;
-          const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
-            icon: redIcon,
-          });
-          markers.addLayer(
-            marker.bindPopup(
-              `<table class="table d-flex flex-column table-borderless">
-              <tbody>
-              <tr class="row g-0 mb-4">
-                  <th class="col-12 text-shadow-white text-break px-0"><h3 class="d-flex fw-bold text-white mb-0">${
-  properties.name
-}<span class="badge bg-primary fs-7 align-self-end h-50 ms-1">${
-  myLocation.distanceTo(marker.getLatLng()).toPrecision(2) / 1000
-} 公里</span></h3></th>
-              </tr>
-              <tr class="row g-0">
-                <td class="px-0 z-index-4">
-                  <div class="badge rounded-circle bg-secondary d-flex justify-content-around align-items-center
-                  fs-6 fw-blod text-primary text-shadow text-break w-100 position-relative z-index-4 px-0 py-2">
-                    <span class="z-index-4">剩</span>
-                    <span class="display-1 z-index-4">${properties.count}</span>
-                    <span class="z-index-4 ms-2">組</span>
-                    <div class="badge bg-warning display-6 fw-bolder text-shadow text-break opacity-75
-                    position-absolute top-0 start-50 translate-middle z-index-4">
-                    ${properties.brands[0].search('羅氏') >= 0 ? '羅氏快篩' : '品牌未知'}</div>
-                </td>
-              <tr class="row g-0">
-                <td class="fs-7 fw-bolder text-white text-center text-shadow-white text-break px-0 z-index-4">${
-  properties.note === null ? '無註備' : properties.note
-}</td>
-              </tr>
-              </tr>
-                <tr class="row g-0">
-                  <td class="text-shadow text-break text-center d-flex flex-column align-items-center px-0"><a class="text-white text-decoration-none z-index-4" href="https://www.google.com.tw/maps/place/${
-  properties.address
-}" target="_blank">${properties.address}</a></td>
-                </tr>
-                <tr class="row g-0 mb-4">
-                  <td class="text-shadow text-white text-break text-center d-flex flex-column align-items-center px-0 z-index-4">${
-  properties.phone
-}</td>
-                </tr>
-                <tr class="row g-0">
-                  <td class="d-flex justify-content-center text-break fst-italic text-light p-0"><small class="opacity-50 z-index-4">最後更新時間： ${
-  properties.updated_at
-}</small></td>
-                </tr>
-              </tbody>
-            </table>`,
-            ),
-          );
-        });
+        fullLayerGroup = L.layerGroup(fullMarkerAry);
+        markers.checkIn(fullLayerGroup);
+        fullLayerGroup.addTo(osmMap);
+        layerControl.addOverlay(
+          fullLayerGroup,
+          '<p class="text-full text-shadow fw-bold fs-5 mb-0">快篩充足藥局<p>',
+        );
       }
       function addLowMarkers() {
         filterAry.low.forEach((pharmacy) => {
@@ -395,9 +393,9 @@ export default {
           const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
             icon: yellowIcon,
           });
-          markers.addLayer(
-            marker.bindPopup(
-              `<table class="table d-flex flex-column table-borderless">
+
+          marker.bindPopup(
+            `<table class="table d-flex flex-column table-borderless">
               <tbody>
               <tr class="row g-0 mb-4">
                   <th class="col-12 text-shadow-white text-break px-0"><h3 class="d-flex fw-bold text-white mb-0">${
@@ -417,7 +415,6 @@ export default {
                     position-absolute top-0 start-50 translate-middle z-index-4">
                     ${properties.brands[0].search('羅氏') >= 0 ? '羅氏快篩' : '品牌未知'}</div>
                 </td>
-              </tr>
               <tr class="row g-0">
                 <td class="fs-7 fw-bolder text-white text-center text-shadow-white text-break px-0 z-index-4">${
   properties.note === null ? '無註備' : properties.note
@@ -441,15 +438,83 @@ export default {
                 </tr>
               </tbody>
             </table>`,
-            ),
           );
+          lowMarkerAry.push(marker);
         });
+        lowLayerGroup = L.layerGroup(lowMarkerAry);
+        markers.checkIn(lowLayerGroup);
+        lowLayerGroup.addTo(osmMap);
+        layerControl.addOverlay(
+          lowLayerGroup,
+          '<p class="text-low text-shadow-white fw-bold fs-5 mb-0">快篩少量藥局<p>',
+        );
       }
+      function addNoneMarkers() {
+        filterAry.none.forEach((pharmacy) => {
+          const { geometry, properties } = pharmacy;
+          const marker = L.marker([geometry.coordinates[1], geometry.coordinates[0]], {
+            icon: redIcon,
+          });
 
+          marker.bindPopup(
+            `<table class="table d-flex flex-column table-borderless">
+              <tbody>
+              <tr class="row g-0 mb-4">
+                  <th class="col-12 text-shadow-white text-break px-0"><h3 class="d-flex fw-bold text-white mb-0">${
+  properties.name
+}<span class="badge bg-primary fs-7 align-self-end h-50 ms-1">${
+  myLocation.distanceTo(marker.getLatLng()).toPrecision(2) / 1000
+} 公里</span></h3></th>
+              </tr>
+              <tr class="row g-0">
+                <td class="px-0 z-index-4">
+                  <div class="badge rounded-circle bg-secondary d-flex justify-content-around align-items-center
+                  fs-6 fw-blod text-primary text-shadow text-break w-100 position-relative z-index-4 px-0 py-2">
+                    <span class="z-index-4">剩</span>
+                    <span class="display-1 z-index-4">${properties.count}</span>
+                    <span class="z-index-4 ms-2">組</span>
+                    <div class="badge bg-warning display-6 fw-bolder text-shadow text-break opacity-75
+                    position-absolute top-0 start-50 translate-middle z-index-4">
+                    ${properties.brands[0].search('羅氏') >= 0 ? '羅氏快篩' : '品牌未知'}</div>
+                </td>
+              <tr class="row g-0">
+                <td class="fs-7 fw-bolder text-white text-center text-shadow-white text-break px-0 z-index-4">${
+  properties.note === null ? '無註備' : properties.note
+}</td>
+              </tr>
+              </tr>
+                <tr class="row g-0">
+                  <td class="text-shadow text-break text-center d-flex flex-column align-items-center px-0"><a class="text-white text-decoration-none z-index-4" href="https://www.google.com.tw/maps/place/${
+  properties.address
+}" target="_blank">${properties.address}</a></td>
+                </tr>
+                <tr class="row g-0 mb-4">
+                  <td class="text-shadow text-white text-break text-center d-flex flex-column align-items-center px-0 z-index-4">${
+  properties.phone
+}</td>
+                </tr>
+                <tr class="row g-0">
+                  <td class="d-flex justify-content-center text-break fst-italic text-light p-0"><small class="opacity-50 z-index-4">最後更新時間： ${
+  properties.updated_at
+}</small></td>
+                </tr>
+              </tbody>
+            </table>`,
+          );
+          noneMarkerAry.push(marker);
+        });
+        noneLayerGroup = L.layerGroup(noneMarkerAry);
+        markers.checkIn(noneLayerGroup);
+        noneLayerGroup.addTo(osmMap);
+        layerControl.addOverlay(
+          noneLayerGroup,
+          '<p class="text-none text-shadow fw-bold fs-5 mb-0">快篩不足藥局<p>',
+        );
+      }
+      markers.addTo(osmMap);
       addNoneMarkers.bind(this)();
       addLowMarkers.bind(this)();
       addFullMarkers.bind(this)();
-      osmMap.addLayer(markers);
     },
     toMyLocation() {
       this.getCurrentPosition().then((position) => {
@@ -464,6 +529,13 @@ export default {
     },
     openSidebar() {
       this.$refs.sidebar.openOffcanvas();
+    },
+    welcomeMessage() {
+      this.message = ['歡迎使用快篩地圖',
+        '右上角圖層圖示可選擇要顯示的藥局',
+        '右下角搖桿圖示可前往您的位置',
+        '最右下角方塊圖示可開啟尋列'];
+      this.$refs.modal.openModal();
     },
   },
   computed: {
@@ -490,9 +562,11 @@ export default {
         this.sortPharmacyData();
         this.initMap();
         this.addMapLayer();
-        // this.addMapMarkers();
+        this.addMapMarkers();
+        this.welcomeMessage();
       } catch (err) {
-        console.log(err);
+        this.message = ['抱歉，發生錯誤，請重新整理'];
+        this.$refs.modal.openModal();
       }
     }
     renderMap.bind(this)();
@@ -596,4 +670,36 @@ export default {
     align-self: center;
   }
 }
+
+/* layers control */
+
+.leaflet-control-layers {
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+  background: #108ECE;
+  border-radius: 5px;
+}
+.leaflet-control-layers-toggle {
+  background-image: url(../public/image/stack.svg);
+  width: 49px;
+  height: 49px;
+}
+.leaflet-touch .leaflet-control-layers-toggle {
+  width: 49px;
+  height: 49px;
+}
+.leaflet-control-layers-expanded {
+  padding: 16px;
+  color: #333;
+  background: #fff;
+}
+.leaflet-control-layers label {
+  display: block;
+  font-size: 13px;
+  font-size: 1.08333em;
+  span {
+    display: flex;
+  }
+  margin-bottom: 8px;
+}
+
 </style>

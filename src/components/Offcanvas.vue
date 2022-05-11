@@ -8,13 +8,30 @@
   >
     <div class="offcanvas-header bg-success flex-column">
       <div class="d-flex justify-content-between w-100 mb-3">
-        <button
-          type="button"
-          class="btn text-white hvr-float p-0"
-          data-bs-dismiss="offcanvas"
-          aria-label="Close"
-        >
-          <i class="bi bi-arrow-right-circle-fill fs-3"></i></button>
+        <div>
+          <button
+            type="button"
+            class="btn text-white hvr-float p-0 me-2"
+            data-bs-dismiss="offcanvas"
+            aria-label="Close"
+            data-bs-toggle="tooltip"
+            data-bs-placement="top"
+            title="收起搜尋欄"
+          >
+            <i class="bi bi-arrow-right-circle-fill fs-3"></i></button>
+          <button
+            @click.stop="toMyLocation"
+            type="button"
+            id="myLocationBtn"
+            class="btn btn-primary shadow text-white"
+            data-bs-toggle="tooltip"
+            data-bs-placement="top"
+            title="前往我的位置"
+          >
+            <i class="bi bi-pin-map-fill"></i>
+            前往我的位置
+          </button>
+        </div>
         <h5
           class="text-white text-shadow-white d-flex align-items-center mb-0"
           id="offcanvasRightLabel"
@@ -95,9 +112,7 @@
         </div>
       </div>
       <div class="d-flex justify-content-around flex-wrap w-100 mb-3">
-         <label
-            class="text-white w-100 mb-2"
-          >快篩數量</label>
+        <label class="text-white w-100 mb-2">快篩數量</label>
         <label
           for="quantitySelect-all"
           class="d-flex flex-column align-items-center
@@ -196,13 +211,13 @@
           </div>
         </li>
         <li class="d-flex bg-success text-white shadow hvr-float px-4 py-2 mb-3">
-            <div class="d-flex align-items-center justify-content-center w-100 mb-1">
+          <div class="d-flex align-items-center justify-content-center w-100 mb-1">
             <p class="fs-5 mb-0">快篩少量的藥局：</p>
             <span class="badge bg-low fs-5 ms-1">{{ pharmacyNumData?.low }} 間</span>
           </div>
         </li>
         <li class="d-flex bg-success text-white shadow hvr-float px-4 py-2 mb-3">
-            <div class="d-flex align-items-center justify-content-center w-100 mb-1">
+          <div class="d-flex align-items-center justify-content-center w-100 mb-1">
             <p class="fs-5 mb-0">快篩不足的藥局：</p>
             <span class="badge bg-none fs-5 ms-1">{{ pharmacyNumData?.none }} 間</span>
           </div>
@@ -235,11 +250,14 @@ export default {
       type: Object,
       default() {
         return {
-          full: {}, low: {}, none: {},
+          full: {},
+          low: {},
+          none: {},
         };
       },
     },
   },
+  emits: ['search', 'to-my-location'],
   methods: {
     openOffcanvas() {
       this.offcanvas.show();
@@ -255,6 +273,9 @@ export default {
         pharmacySelect: this.pharmacySelect,
         locationText: this.locationText,
       });
+    },
+    toMyLocation() {
+      this.$emit('to-my-location');
     },
   },
   watch: {

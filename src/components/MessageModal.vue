@@ -65,7 +65,6 @@ export default {
   watch: {
     message() {
       this.messageText = this.message;
-      console.log(this.message);
     },
   },
   mounted() {
