@@ -6,13 +6,6 @@
     >
       <div class="d-flex flex-column position-absolute bottom-3 end-3 z-index-999">
         <button
-          id=""
-          class="btn btn-primary rounded-circle shadow hvr-pulse-grow mb-4"
-          data-bs-toggle="tooltip" data-bs-placement="top" title="說明"
-        >
-          <i class="bi bi-patch-question-fill fs-3 text-danger"></i>
-        </button>
-        <button
         type="button"
           @click.stop="toMyLocation"
           id="myLocationBtn"
@@ -34,8 +27,7 @@
       <Offcanvas
       @click.stop=""
       @search="search"
-      :searchData="searchData"
-      :location="location"
+      :pharmacyNum="pharmacyNum"
       ref="sidebar" />
       <MessageModal
       @click.stop=""
@@ -49,11 +41,15 @@
 <script>
 import L from 'leaflet';
 import 'leaflet.markercluster/dist/leaflet.markercluster';
+import 'leaflet.markercluster.layersupport';
 import Offcanvas from './components/Offcanvas.vue';
 import MessageModal from './components/MessageModal.vue';
 
 let osmMap = {};
 let markers = null;
+// const full = [];
+// const low = [];
+
 const greenIcon = new L.Icon({
   iconUrl:
     'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
@@ -98,8 +94,8 @@ export default {
     return {
       rapidTestData: [],
       location: {
-        latitude: 22.6417929,
-        longitude: 120.3320082,
+        latitude: '',
+        longitude: '',
       },
       myLocationMarker: null,
       message: [],
@@ -108,6 +104,7 @@ export default {
         low: [],
         none: [],
       },
+      pharmacyNum: {},
     };
   },
   methods: {
@@ -195,26 +192,38 @@ export default {
         this.$refs.modal.openModal();
       } else {
         if (pharmacySelect.includes('none')) {
-          pharmacyLocation = [];
-          pharmacyLocation = [this.searchData.none[0].geometry.coordinates[1],
-            this.searchData.none[0].geometry.coordinates[0],
-          ];
+          if (this.searchData.none.length) {
+            pharmacyLocation = [];
+            pharmacyLocation = [this.searchData.none[0].geometry.coordinates[1],
+              this.searchData.none[0].geometry.coordinates[0],
+            ];
+            console.log('找到沒有塊篩的藥局位置', pharmacyLocation);
+          }
         }
         if (pharmacySelect.includes('low')) {
-          pharmacyLocation = [];
-          pharmacyLocation = [this.searchData.low[0].geometry.coordinates[1],
-            this.searchData.low[0].geometry.coordinates[0],
-          ];
+          if (this.searchData.low.length) {
+            pharmacyLocation = [];
+            pharmacyLocation = [this.searchData.low[0].geometry.coordinates[1],
+              this.searchData.low[0].geometry.coordinates[0],
+            ];
+          }
         }
         if (pharmacySelect.includes('full')) {
-          pharmacyLocation = [];
-          pharmacyLocation = [this.searchData.full[0].geometry.coordinates[1],
-            this.searchData.full[0].geometry.coordinates[0],
-          ];
+          if (this.searchData.full.length) {
+            pharmacyLocation = [];
+            pharmacyLocation = [this.searchData.full[0].geometry.coordinates[1],
+              this.searchData.full[0].geometry.coordinates[0],
+            ];
+          }
         }
-
-        this.message = outcomeCaculte;
+        console.log(pharmacyLocation);
         console.log(outcomeCaculte);
+        this.message = outcomeCaculte;
+        this.pharmacyNum = {
+          full: this.searchData.full.length,
+          low: this.searchData.low.length,
+          none: this.searchData.none.length,
+        };
         this.addMapMarkers(this.searchData);
         this.panToLocation(pharmacyLocation);
         this.$refs.modal.openModal();
@@ -237,13 +246,13 @@ export default {
         center: [this.location.latitude, this.location.longitude],
         zoom: 16,
       });
-      L.control.scale().addTo(osmMap);
     },
     addMapLayer() {
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(osmMap);
+      L.control.scale().addTo(osmMap);
     },
     getCurrentPosition() {
       return new Promise((resolve, reject) => {
@@ -481,7 +490,7 @@ export default {
         this.sortPharmacyData();
         this.initMap();
         this.addMapLayer();
-        this.addMapMarkers();
+        // this.addMapMarkers();
       } catch (err) {
         console.log(err);
       }

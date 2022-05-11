@@ -7,7 +7,7 @@
     aria-labelledby="offcanvasRightLabel"
   >
     <div class="offcanvas-header bg-success flex-column">
-      <div class="d-flex justify-content-between w-100 mb-4">
+      <div class="d-flex justify-content-between w-100 mb-3">
         <button
           type="button"
           class="btn text-white hvr-float p-0"
@@ -20,7 +20,7 @@
           id="offcanvasRightLabel"
         >快篩地圖</h5>
       </div>
-      <div class="d-flex w-100 mb-4">
+      <div class="d-flex w-100 mb-3">
         <div class="w-50 me-8">
           <label
             for="citySelected"
@@ -69,7 +69,7 @@
           </select>
         </div>
       </div>
-      <div class="d-flex w-100 mb-4">
+      <div class="d-flex w-100 mb-3">
         <div class="w-100">
           <label
             for="citySelected"
@@ -94,7 +94,10 @@
           </select>
         </div>
       </div>
-      <div class="d-flex justify-content-around w-100 mb-4">
+      <div class="d-flex justify-content-around flex-wrap w-100 mb-3">
+         <label
+            class="text-white w-100 mb-2"
+          >快篩數量</label>
         <label
           for="quantitySelect-all"
           class="d-flex flex-column align-items-center
@@ -105,7 +108,8 @@
             src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-black.png"
             alt="radioImage"
           >
-          <p class="text-white mb-2">全選</p>
+          <p class="text-white mb-1">全選</p>
+          <p class="text-white mb-1">all</p>
           <input
             id="quantitySelect-all"
             v-model="pharmacySelect"
@@ -124,7 +128,8 @@
             src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png"
             alt="radioImage"
           >
-          <p class="text-white mb-2">不足</p>
+          <p class="text-white mb-1">不足</p>
+          <p class="text-white mb-1">0</p>
           <input
             id="quantitySelect-none"
             v-model="pharmacySelect"
@@ -143,7 +148,8 @@
             src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png"
             alt="radioImage"
           >
-          <p class="text-white mb-2">少量</p>
+          <p class="text-white mb-1">少量</p>
+          <p class="text-white mb-1"> &lt; 38</p>
           <input
             id="quantitySelect-low"
             v-model="pharmacySelect"
@@ -162,7 +168,8 @@
             src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png"
             alt="radioImage"
           >
-          <p class="text-white mb-2">充足</p>
+          <p class="text-white mb-1">充足</p>
+          <p class="text-white mb-1">&gt;=38</p>
           <input
             id="quantitySelect-full"
             v-model="pharmacySelect"
@@ -179,66 +186,26 @@
       text-shadow-white fw-bold"
       >搜尋</button>
     </div>
-    <div class="offcanvas-body overflow-y-scroll px-1">
+    <div class="offcanvas-body px-1">
+      <h3 class="text-center text-white text-shadow-white fw-bold mb-4">搜尋結果</h3>
       <ul class="list-unstyled">
-        <li
-        v-for="pharmacy in searchData.full" :key="pharmacy.properties.latitude"
-        class="d-flex bg-success text-white shadow hvr-float px-4 py-2 mb-3">
-          <div class="w-70">
-            <div class="d-flex align-items-center mb-1">
-              <h3 class="mb-0">{{pharmacy.properties.name}}</h3>
-              <span class="badge bg-primary ms-1">
-                {{ myLocation.distanceTo(
-                  [pharmacy.properties.latitude, pharmacy.properties.longitude])
-                  .toPrecision(2) / 1000}}
-                  公里</span>
-            </div>
-            <div>
-              <a class="text-decoration-none text-white mb-1">
-                {{pharmacy.properties.address}}</a>
-              <p class="mb-1">{{pharmacy.properties.phone}}</p>
-            </div>
+        <li class="d-flex bg-success text-white shadow hvr-float px-4 py-2 mb-3">
+          <div class="d-flex align-items-center justify-content-center w-100 mb-1">
+            <p class="fs-5 mb-0">快篩充足的藥局：</p>
+            <span class="badge bg-full fs-5 ms-1">{{ pharmacyNumData?.full }} 間</span>
           </div>
-          <p class="badge bg-full rounded-circle d-flex flex-column justify-content-center
-          position-relative ms-1 mb-0 w-30">
-            <span class="d-block fs-7 position-absolute top-5 start-50 translate-middle-x">
-              羅氏:</span>
-            <span class="d-block fs-1 text-shadow-white">
-              {{pharmacy.properties.count}} <small class="fs-6">份</small>
-            </span>
-          </p>
         </li>
-        <li class="d-flex bg-success text-white shadow hvr-float px-4 py-2 mb-1">
-          <div>
-            <div class="d-flex align-items-center mb-1">
-              <h3 class="mb-0">我我藥局</h3>
-              <span class="badge bg-primary ms-1">0.5 公里</span>
-            </div>
-            <div class="">
-              <a class="text-decoration-none text-white mb-1">高雄市鳳山區光復路二段269之8號9樓</a>
-              <p class="mb-1">077999125</p>
-            </div>
+        <li class="d-flex bg-success text-white shadow hvr-float px-4 py-2 mb-3">
+            <div class="d-flex align-items-center justify-content-center w-100 mb-1">
+            <p class="fs-5 mb-0">快篩少量的藥局：</p>
+            <span class="badge bg-low fs-5 ms-1">{{ pharmacyNumData?.low }} 間</span>
           </div>
-          <p class="badge bg-low rounded-circle d-flex flex-column ms-1 mb-0">
-            <span class="d-block fs-7 mt-1 mb-3">羅氏:</span>
-            <span class="d-block flex-grow-1 fs-1 text-white text-shadow-white">0.5 份</span>
-          </p>
         </li>
-        <li class="d-flex bg-success text-white shadow hvr-float px-4 py-2 mb-1">
-          <div>
-            <div class="d-flex align-items-center mb-1">
-              <h3 class="mb-0">我我藥局</h3>
-              <span class="badge bg-primary ms-1">0.5 公里</span>
-            </div>
-            <div class="">
-              <a class="text-decoration-none text-white mb-1">高雄市鳳山區光復路二段269之8號9樓</a>
-              <p class="mb-1">077999125</p>
-            </div>
+        <li class="d-flex bg-success text-white shadow hvr-float px-4 py-2 mb-3">
+            <div class="d-flex align-items-center justify-content-center w-100 mb-1">
+            <p class="fs-5 mb-0">快篩不足的藥局：</p>
+            <span class="badge bg-none fs-5 ms-1">{{ pharmacyNumData?.none }} 間</span>
           </div>
-          <p class="badge bg-none rounded-circle d-flex flex-column ms-1 mb-0">
-            <span class="d-block fs-7 mt-1 mb-3">羅氏:</span>
-            <span class="d-block flex-grow-1 fs-1 text-white text-shadow-white">0.5 份</span>
-          </p>
         </li>
       </ul>
     </div>
@@ -246,7 +213,6 @@
 </template>
 
 <script>
-import L from 'leaflet';
 import Offcanvas from 'bootstrap/js/dist/offcanvas';
 import mapData from '../../public/mapData/AllData.json';
 
@@ -261,20 +227,16 @@ export default {
       mapData,
       cityData: [],
       areaData: [],
-      filterData: [],
+      pharmacyNumData: [],
     };
   },
   props: {
-    searchData: {
+    pharmacyNum: {
       type: Object,
       default() {
-        return {};
-      },
-    },
-    location: {
-      type: Object,
-      default() {
-        return {};
+        return {
+          full: {}, low: {}, none: {},
+        };
       },
     },
   },
@@ -325,8 +287,8 @@ export default {
         this.pharmacySelect.push('all');
       }
     },
-    searchData() {
-      this.filterData = [...this.searchData];
+    pharmacyNum() {
+      this.pharmacyNumData = { ...this.pharmacyNum };
     },
   },
   computed: {
@@ -336,9 +298,6 @@ export default {
         area: this.area,
         road: this.road,
       };
-    },
-    myLocation() {
-      return L.latLng(this.location.latitude, this.location.longitude);
     },
   },
   mounted() {
