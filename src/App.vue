@@ -128,7 +128,7 @@ export default {
         none: [],
       };
       const { locationText, pharmacySelect } = searchContent;
-      console.log(locationText, pharmacySelect);
+      // console.log(locationText, pharmacySelect);
 
       let tempSearchData = [];
       let outcomeCaculte = [];
@@ -150,28 +150,28 @@ export default {
           const text = `快篩不足的藥局共 ${this.searchData.none.length} 家`;
           outcomeCaculte.push(text);
         }
-        console.log('全臺', this.searchData);
+        // console.log('全臺', this.searchData);
       }
 
       if (locationText.city !== '全臺') {
         tempSearchData = this.rapidTestData.filter(
           (pharmacy) => pharmacy.properties.address.includes(locationText.city),
         );
-        console.log('城市', tempSearchData);
+        // console.log('城市', tempSearchData);
         if (locationText.area.length) {
           tempSearchData = tempSearchData.filter(
             (pharmacy) => pharmacy.properties.address.includes(locationText.area),
           );
-          console.log('鄉鎮市區', tempSearchData);
+          // console.log('鄉鎮市區', tempSearchData);
           if (locationText.road.length) {
             tempSearchData = tempSearchData.filter(
               (pharmacy) => pharmacy.properties.address.includes(locationText.road),
             );
-            console.log('路巷村莊', tempSearchData);
+            // console.log('路巷村莊', tempSearchData);
           }
         }
 
-        console.log('分配資料了');
+        // console.log('分配資料了');
         if (pharmacySelect.includes('full')) {
           this.searchData.full = tempSearchData.filter(
             (pharmacy) => pharmacy.properties.count >= 38,
@@ -195,9 +195,9 @@ export default {
         }
       }
 
-      console.log(pharmacyLocation);
+      // console.log(pharmacyLocation);
 
-      console.log('分類完成', this.searchData);
+      // console.log('分類完成', this.searchData);
       if (
         !this.searchData.full.length
         && !this.searchData.low.length
@@ -214,7 +214,7 @@ export default {
               this.searchData.none[0].geometry.coordinates[1],
               this.searchData.none[0].geometry.coordinates[0],
             ];
-            console.log('找到沒有塊篩的藥局位置', pharmacyLocation);
+            // console.log('找到沒有塊篩的藥局位置', pharmacyLocation);
           }
         }
         if (pharmacySelect.includes('low')) {
@@ -235,8 +235,8 @@ export default {
             ];
           }
         }
-        console.log(pharmacyLocation);
-        console.log(outcomeCaculte);
+        // console.log(pharmacyLocation);
+        // console.log(outcomeCaculte);
         this.message = outcomeCaculte;
         this.pharmacyNum = {
           full: this.searchData.full.length,
