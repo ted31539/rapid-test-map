@@ -6,9 +6,6 @@
     >
       <loading
         v-model:active="isLoading"
-        :can-cancel="true"
-        :on-cancel="onCancel"
-        :is-full-page="fullPage"
       />
       <div class="d-flex flex-column position-absolute bottom-3 end-3 z-index-999">
         <button
@@ -62,10 +59,12 @@ import MessageModal from './components/MessageModal.vue';
 
 let osmMap = {};
 let markers = null;
+let myLocationMarker = null;
 let layerControl = null;
 let fullMarkerAry = [];
 let lowMarkerAry = [];
 let noneMarkerAry = [];
+// let myLocationMarkerLayerGroup = null;
 let fullLayerGroup = null;
 let lowLayerGroup = null;
 let noneLayerGroup = null;
@@ -115,10 +114,9 @@ export default {
       isLoading: true,
       rapidTestData: [],
       location: {
-        latitude: '',
-        longitude: '',
+        latitude: 22.6117329,
+        longitude: 120.3023769,
       },
-      myLocationMarker: null,
       message: [],
       searchData: {
         full: [],
@@ -126,6 +124,7 @@ export default {
         none: [],
       },
       pharmacyNum: {},
+      getLocationSucess: '',
     };
   },
   methods: {
@@ -291,8 +290,8 @@ export default {
         this.message = ['抱歉，無法取得您的所在，請檢查您的裝置'];
         this.$refs.modal.openModal();
       }
+      console.log(res);
       return res;
-      /* geolocation IS NOT available */
     },
     addMapMarkers(
       filterAry = {
@@ -322,11 +321,6 @@ export default {
       markers = L.markerClusterGroup.layerSupport();
       layerControl = L.control.layers().addTo(osmMap);
       const myLocation = L.latLng(this.location.latitude, this.location.longitude);
-
-      this.myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
-        icon: blueIcon,
-      }).addTo(osmMap).bindPopup(`
-      <div><p class="fs-5 text-danger fw-bold text-shadow-white pt-4"><i class="bi bi-emoji-laughing-fill me-1"></i>我的位置</p></div>`);
 
       function addFullMarkers() {
         filterAry.full.forEach((pharmacy) => {
@@ -519,11 +513,35 @@ export default {
       addFullMarkers.bind(this)();
     },
     toMyLocation() {
+      if (myLocationMarker) {
+        osmMap.removeLayer(myLocationMarker);
+      }
       this.getCurrentPosition().then((position) => {
+        console.log('取得位置成功');
         this.location.latitude = position.coords.latitude;
         this.location.longitude = position.coords.longitude;
+        myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
+          icon: blueIcon,
+        }).bindPopup(`
+      <div><p class="fs-5 text-danger fw-bold text-shadow-white pt-4"><i class="bi bi-emoji-laughing-fill me-1"></i>我的位置</p></div>`);
+        osmMap.addLayer(myLocationMarker);
+        myLocationMarker.addTo(osmMap);
         osmMap.setView([this.location.latitude, this.location.longitude], 16);
-        this.myLocationMarker.openPopup();
+        myLocationMarker.openPopup();
+      }).catch(() => {
+        this.message = ['抱歉，無法取得您的所在，請檢查您的裝置，先定位高雄附近'];
+        this.$refs.modal.openModal();
+        console.log('取得位置失敗');
+        this.location.latitude = 22.6117329;
+        this.location.longitude = 120.3023769;
+        myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
+          icon: blueIcon,
+        }).bindPopup(`
+      <div><p class="fs-5 text-danger fw-bold text-shadow-white pt-4"><i class="bi bi-emoji-laughing-fill me-1"></i>我的位置</p></div>`);
+        osmMap.addLayer(myLocationMarker);
+        myLocationMarker.addTo(osmMap);
+        osmMap.setView([this.location.latitude, this.location.longitude], 16);
+        myLocationMarker.openPopup();
       });
     },
     panToLocation(location) {
@@ -535,13 +553,24 @@ export default {
         this.$refs.sidebar.openOffcanvas();
       }, 400);
     },
-    welcomeMessage() {
-      this.message = [
-        '歡迎使用快篩地圖',
-        '右上角圖層圖示可選擇要顯示的藥局',
-        '右下角搖桿圖示可前往您的位置',
-        '最右下角方塊圖示可開啟尋列',
-      ];
+    welcomeMessage(getLocationSucess) {
+      if (getLocationSucess) {
+        this.message = [
+          '歡迎使用快篩地圖',
+          '右上角圖層圖示可選擇要顯示的藥局',
+          '右下角搖桿圖示可前往您的位置',
+          '最右下角方塊圖示可開啟尋列',
+        ];
+      } else {
+        this.message = [
+          '抱歉，無法取得您的所在，請檢查您的裝置，先定位高雄附近',
+          '-',
+          '歡迎使用快篩地圖',
+          '右上角圖層圖示可選擇要顯示的藥局',
+          '右下角搖桿圖示可前往您的位置',
+          '最右下角方塊圖示可開啟尋列',
+        ];
+      }
       this.$refs.modal.openModal();
     },
   },
@@ -565,12 +594,32 @@ export default {
         const position = await this.getCurrentPosition();
         this.location.latitude = position.coords.latitude;
         this.location.longitude = position.coords.longitude;
+        this.getLocationSucess = true;
         this.rapidTestData = await this.getPharmacyData();
         this.sortPharmacyData();
         this.initMap();
         this.addMapLayer();
         this.addMapMarkers();
+        this.toMyLocation();
       } catch (err) {
+        console.log(err);
+        if (err?.message === 'User denied Geolocation') {
+          this.getLocationSucess = false;
+          this.rapidTestData = await this.getPharmacyData();
+          this.sortPharmacyData();
+          this.initMap();
+          this.addMapLayer();
+          this.addMapMarkers();
+          myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
+            icon: blueIcon,
+          }).bindPopup(`
+      <div><p class="fs-5 text-danger fw-bold text-shadow-white pt-4"><i class="bi bi-emoji-laughing-fill me-1"></i>我的位置</p></div>`);
+          osmMap.addLayer(myLocationMarker);
+          myLocationMarker.addTo(osmMap);
+          osmMap.setView([this.location.latitude, this.location.longitude], 16);
+          myLocationMarker.openPopup();
+          return;
+        }
         this.message = ['抱歉，發生錯誤，請重新整理'];
         this.$refs.modal.openModal();
       }
@@ -578,8 +627,8 @@ export default {
     renderMap.bind(this)();
     setTimeout(() => {
       this.isLoading = false;
-      this.welcomeMessage();
-    }, 1000);
+      this.welcomeMessage(this.getLocationSucess);
+    }, 2000);
   },
 };
 </script>
