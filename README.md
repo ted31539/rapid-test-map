@@ -1,24 +1,14 @@
 # rapid-test-map
 
-## Project setup
-```
-npm install
-```
+## 功能
++ 定位裝置位置
++ 顯示全臺備有實名制快篩藥局的分布
++ 可查詢特定地點的藥局的快篩資訊訊
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+## 使用說明
++ 根據不同快篩數量，右上角可篩選要顯示的藥局
++ 右下角上方第一個搖桿圖示，可定位裝置位置
++ 右下角下方方塊圖示，可開啟搜尋列
 
-### Compiles and minifies for production
-```
-npm run build
-```
 
-### Lints and fixes files
-```
-npm run lint
-```
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).

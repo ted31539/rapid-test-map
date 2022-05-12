@@ -4,6 +4,12 @@
       id="map"
       class="position-relative"
     >
+      <loading
+        v-model:active="isLoading"
+        :can-cancel="true"
+        :on-cancel="onCancel"
+        :is-full-page="fullPage"
+      />
       <div class="d-flex flex-column position-absolute bottom-3 end-3 z-index-999">
         <button
           type="button"
@@ -29,7 +35,7 @@
         </button>
       </div>
       <Offcanvas
-      class=""
+        class=""
         @click.stop=""
         @search="search"
         @to-my-location="toMyLocation"
@@ -49,6 +55,8 @@
 import L from 'leaflet';
 import 'leaflet.markercluster/dist/leaflet.markercluster';
 import 'leaflet.markercluster.layersupport';
+import Loading from 'vue-loading-overlay';
+import 'vue-loading-overlay/dist/vue-loading.css';
 import Offcanvas from './components/Offcanvas.vue';
 import MessageModal from './components/MessageModal.vue';
 
@@ -61,8 +69,6 @@ let noneMarkerAry = [];
 let fullLayerGroup = null;
 let lowLayerGroup = null;
 let noneLayerGroup = null;
-// const full = [];
-// const low = [];
 
 const greenIcon = new L.Icon({
   iconUrl:
@@ -103,9 +109,10 @@ const blueIcon = new L.Icon({
 
 export default {
   name: 'App',
-  components: { Offcanvas, MessageModal },
+  components: { Offcanvas, MessageModal, Loading },
   data() {
     return {
+      isLoading: true,
       rapidTestData: [],
       location: {
         latitude: '',
@@ -123,13 +130,13 @@ export default {
   },
   methods: {
     search(searchContent) {
+      this.isLoading = true;
       this.searchData = {
         full: [],
         low: [],
         none: [],
       };
       const { locationText, pharmacySelect } = searchContent;
-      // console.log(locationText, pharmacySelect);
 
       let tempSearchData = [];
       let outcomeCaculte = [];
@@ -151,28 +158,23 @@ export default {
           const text = `快篩不足的藥局共 ${this.searchData.none.length} 家`;
           outcomeCaculte.push(text);
         }
-        // console.log('全臺', this.searchData);
       }
 
       if (locationText.city !== '全臺') {
         tempSearchData = this.rapidTestData.filter(
           (pharmacy) => pharmacy.properties.address.includes(locationText.city),
         );
-        // console.log('城市', tempSearchData);
         if (locationText.area.length) {
           tempSearchData = tempSearchData.filter(
             (pharmacy) => pharmacy.properties.address.includes(locationText.area),
           );
-          // console.log('鄉鎮市區', tempSearchData);
           if (locationText.road.length) {
             tempSearchData = tempSearchData.filter(
               (pharmacy) => pharmacy.properties.address.includes(locationText.road),
             );
-            // console.log('路巷村莊', tempSearchData);
           }
         }
 
-        // console.log('分配資料了');
         if (pharmacySelect.includes('full')) {
           this.searchData.full = tempSearchData.filter(
             (pharmacy) => pharmacy.properties.count >= 38,
@@ -196,9 +198,6 @@ export default {
         }
       }
 
-      // console.log(pharmacyLocation);
-
-      // console.log('分類完成', this.searchData);
       if (
         !this.searchData.full.length
         && !this.searchData.low.length
@@ -215,7 +214,6 @@ export default {
               this.searchData.none[0].geometry.coordinates[1],
               this.searchData.none[0].geometry.coordinates[0],
             ];
-            // console.log('找到沒有塊篩的藥局位置', pharmacyLocation);
           }
         }
         if (pharmacySelect.includes('low')) {
@@ -236,8 +234,7 @@ export default {
             ];
           }
         }
-        // console.log(pharmacyLocation);
-        // console.log(outcomeCaculte);
+
         this.message = outcomeCaculte;
         this.pharmacyNum = {
           full: this.searchData.full.length,
@@ -246,7 +243,11 @@ export default {
         };
         this.addMapMarkers(this.searchData);
         this.panToLocation(pharmacyLocation);
-        this.$refs.modal.openModal();
+
+        setTimeout(() => {
+          this.isLoading = false;
+          this.$refs.modal.openModal();
+        }, 500);
       }
     },
     getPharmacyData() {
@@ -535,10 +536,12 @@ export default {
       }, 400);
     },
     welcomeMessage() {
-      this.message = ['歡迎使用快篩地圖',
+      this.message = [
+        '歡迎使用快篩地圖',
         '右上角圖層圖示可選擇要顯示的藥局',
         '右下角搖桿圖示可前往您的位置',
-        '最右下角方塊圖示可開啟尋列'];
+        '最右下角方塊圖示可開啟尋列',
+      ];
       this.$refs.modal.openModal();
     },
   },
@@ -567,13 +570,16 @@ export default {
         this.initMap();
         this.addMapLayer();
         this.addMapMarkers();
-        this.welcomeMessage();
       } catch (err) {
         this.message = ['抱歉，發生錯誤，請重新整理'];
         this.$refs.modal.openModal();
       }
     }
     renderMap.bind(this)();
+    setTimeout(() => {
+      this.isLoading = false;
+      this.welcomeMessage();
+    }, 1000);
   },
 };
 </script>
@@ -679,7 +685,7 @@ export default {
 
 .leaflet-control-layers {
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
-  background: #108ECE;
+  background: #108ece;
   border-radius: 5px;
 }
 .leaflet-control-layers-toggle {
