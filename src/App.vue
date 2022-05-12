@@ -290,7 +290,6 @@ export default {
         this.message = ['抱歉，無法取得您的所在，請檢查您的裝置'];
         this.$refs.modal.openModal();
       }
-      console.log(res);
       return res;
     },
     addMapMarkers(
@@ -517,7 +516,6 @@ export default {
         osmMap.removeLayer(myLocationMarker);
       }
       this.getCurrentPosition().then((position) => {
-        console.log('取得位置成功');
         this.location.latitude = position.coords.latitude;
         this.location.longitude = position.coords.longitude;
         myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
@@ -531,7 +529,6 @@ export default {
       }).catch(() => {
         this.message = ['抱歉，無法取得您的所在，請檢查您的裝置，先定位高雄附近'];
         this.$refs.modal.openModal();
-        console.log('取得位置失敗');
         this.location.latitude = 22.6117329;
         this.location.longitude = 120.3023769;
         myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
@@ -602,7 +599,6 @@ export default {
         this.addMapMarkers();
         this.toMyLocation();
       } catch (err) {
-        console.log(err);
         if (err?.message === 'User denied Geolocation') {
           this.getLocationSucess = false;
           this.rapidTestData = await this.getPharmacyData();
