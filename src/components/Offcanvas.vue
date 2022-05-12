@@ -30,7 +30,7 @@
             title="前往我的位置"
           >
             <i class="bi bi-pin-map-fill"></i>
-            前往我的位置
+            定位
           </button>
         </div>
         <h5
