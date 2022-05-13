@@ -1,22 +1,29 @@
+* {
+  box-sizing: border-box !important;
+}
+
 body {
-    font-family: 'Roboto', 'Noto Sans TC', sans-serif;
-    width: 100%;    
-    box-sizing: border-box !important; 
-    overflow-x: hidden !important;   
+  font-family: 'Roboto', 'Noto Sans TC', sans-serif;
+  width: 100%;
+  overflow-x: hidden !important;
 }
 
 img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-    object-fit: cover;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
 }
 
-input[type=checkbox] {
-    width: 20px;
-    height: 20px;
+input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
 }
 
-.btn-secondary:hover {
-    background: #ebff15a6 !important;
+.btn-warning:hover {
+  background: #dae63d !important;
+}
+
+.btn:focus {
+  box-shadow: none;
 }

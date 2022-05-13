@@ -9,7 +9,7 @@
   >
     <div class="modal-dialog  border-0">
       <div class="modal-content  border-0 shadow-lg">
-        <div class="modal-header bg-danger border-0">
+        <div class="modal-header bg-warning border-0">
           <h5
             class="modal-title text-white text-shadow-white fw-bold"
             id="exampleModalLabel"
@@ -23,11 +23,12 @@
         </div>
         <div class="modal-body d-flex flex-column align-items-center">
           <ul class="fs-5 text-shadow mb-6 fw-bold list-unstyled">
-              <li v-for="text in messageText" :key="text">{{ text }}</li>
+              <li v-for="text in messageText" :key="text" class="mb-4">{{ text }}
+              </li>
           </ul>
           <button
             type="button"
-            class="btn btn-danger text-white text-shadow-white fw-bold w-50"
+            class="btn btn-warning text-white text-shadow-white fw-bold w-50"
             data-bs-dismiss="modal"
           >關閉</button>
         </div>

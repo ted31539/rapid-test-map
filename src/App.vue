@@ -1,12 +1,23 @@
 <template>
   <div class="container-fluid">
+    <Offcanvas
+      class=""
+      @click.stop=""
+      @search="search"
+      @to-my-location="toMyLocation"
+      :pharmacyNum="pharmacyNum"
+      ref="sidebar"
+    />
+    <MessageModal
+      @click.stop=""
+      :message="message"
+      ref="modal"
+    />
     <div
       id="map"
       class="position-relative"
     >
-      <loading
-        v-model:active="isLoading"
-      />
+      <loading v-model:active="isLoading" />
       <div class="d-flex flex-column position-absolute bottom-3 end-3 z-index-999">
         <button
           type="button"
@@ -31,19 +42,6 @@
           <i class="bi bi-grid-3x3-gap fs-3 text-danger"></i>
         </button>
       </div>
-      <Offcanvas
-        class=""
-        @click.stop=""
-        @search="search"
-        @to-my-location="toMyLocation"
-        :pharmacyNum="pharmacyNum"
-        ref="sidebar"
-      />
-      <MessageModal
-        @click.stop=""
-        :message="message"
-        ref="modal"
-      />
     </div>
   </div>
 </template>
@@ -124,7 +122,7 @@ export default {
         none: [],
       },
       pharmacyNum: {},
-      getLocationSucess: '',
+      getLocationSucess: true,
     };
   },
   methods: {
@@ -135,6 +133,7 @@ export default {
         low: [],
         none: [],
       };
+
       const { locationText, pharmacySelect } = searchContent;
 
       let tempSearchData = [];
@@ -197,14 +196,18 @@ export default {
         }
       }
 
-      if (
-        !this.searchData.full.length
-        && !this.searchData.low.length
-        && !this.searchData.none.length
-      ) {
+      if (pharmacySelect.every((pharmacy) => this.searchData[pharmacy]?.length === 0)) {
+        this.pharmacyNum = {
+          full: this.searchData.full.length,
+          low: this.searchData.low.length,
+          none: this.searchData.none.length,
+        };
         outcomeCaculte = ['拍謝，沒有符合條件的藥局!!'];
         this.message = outcomeCaculte;
-        this.$refs.modal.openModal();
+        setTimeout(() => {
+          this.isLoading = false;
+          this.$refs.modal.openModal();
+        }, 500);
       } else {
         if (pharmacySelect.includes('none')) {
           if (this.searchData.none.length) {
@@ -255,7 +258,7 @@ export default {
         .get(url)
         .then((res) => res.data.features)
         .catch(() => {
-          this.message = ['抱歉，發生錯誤，請重新整理'];
+          this.message = ['抱歉，無法取得資料，請重新整理'];
           this.$refs.modal.openModal();
         });
     },
@@ -284,6 +287,11 @@ export default {
           navigator.geolocation.getCurrentPosition(
             (position) => resolve(position),
             (error) => reject(error),
+            {
+              timeout: Infinity,
+              maximumAge: Infinity,
+              enableHighAccuracy: true,
+            },
           );
         });
       } else {
@@ -515,31 +523,33 @@ export default {
       if (myLocationMarker) {
         osmMap.removeLayer(myLocationMarker);
       }
-      this.getCurrentPosition().then((position) => {
-        this.location.latitude = position.coords.latitude;
-        this.location.longitude = position.coords.longitude;
-        myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
-          icon: blueIcon,
-        }).bindPopup(`
+      this.getCurrentPosition()
+        .then((position) => {
+          this.location.latitude = position.coords.latitude;
+          this.location.longitude = position.coords.longitude;
+          myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
+            icon: blueIcon,
+          }).bindPopup(`
       <div><p class="fs-5 text-danger fw-bold text-shadow-white pt-4"><i class="bi bi-emoji-laughing-fill me-1"></i>我的位置</p></div>`);
-        osmMap.addLayer(myLocationMarker);
-        myLocationMarker.addTo(osmMap);
-        osmMap.setView([this.location.latitude, this.location.longitude], 16);
-        myLocationMarker.openPopup();
-      }).catch(() => {
-        this.message = ['抱歉，無法取得您的所在，請檢查您的裝置，先定位高雄附近'];
-        this.$refs.modal.openModal();
-        this.location.latitude = 22.6117329;
-        this.location.longitude = 120.3023769;
-        myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
-          icon: blueIcon,
-        }).bindPopup(`
+          osmMap.addLayer(myLocationMarker);
+          myLocationMarker.addTo(osmMap);
+          osmMap.setView([this.location.latitude, this.location.longitude], 16);
+          myLocationMarker.openPopup();
+        })
+        .catch(() => {
+          this.message = ['抱歉，無法取得您的所在，請檢查您的裝置，先定位高雄附近'];
+          this.$refs.modal.openModal();
+          this.location.latitude = 22.6117329;
+          this.location.longitude = 120.3023769;
+          myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
+            icon: blueIcon,
+          }).bindPopup(`
       <div><p class="fs-5 text-danger fw-bold text-shadow-white pt-4"><i class="bi bi-emoji-laughing-fill me-1"></i>我的位置</p></div>`);
-        osmMap.addLayer(myLocationMarker);
-        myLocationMarker.addTo(osmMap);
-        osmMap.setView([this.location.latitude, this.location.longitude], 16);
-        myLocationMarker.openPopup();
-      });
+          osmMap.addLayer(myLocationMarker);
+          myLocationMarker.addTo(osmMap);
+          osmMap.setView([this.location.latitude, this.location.longitude], 16);
+          myLocationMarker.openPopup();
+        });
     },
     panToLocation(location) {
       osmMap.setView(location, 16);
@@ -553,19 +563,21 @@ export default {
     welcomeMessage(getLocationSucess) {
       if (getLocationSucess) {
         this.message = [
-          '歡迎使用快篩地圖',
-          '右上角圖層圖示可選擇要顯示的藥局',
-          '右下角搖桿圖示可前往您的位置',
-          '最右下角方塊圖示可開啟尋列',
+          '歡迎使用快篩地圖!!',
+          '-右上角圖層圖示可選擇要顯示的藥局',
+          '-右下角搖桿圖示可前往您的位置',
+          '-最右下角方塊圖示可開啟尋列',
+          '-1.1版',
         ];
       } else {
         this.message = [
-          '抱歉，無法取得您的所在，請檢查您的裝置，先定位高雄附近',
-          '-',
-          '歡迎使用快篩地圖',
-          '右上角圖層圖示可選擇要顯示的藥局',
-          '右下角搖桿圖示可前往您的位置',
-          '最右下角方塊圖示可開啟尋列',
+          '沒定位成功，先定位高雄近~',
+          'Σ( ° △ °|||)︴',
+          '歡迎使用快篩地圖!!',
+          '-右上角圖層圖示可選擇要顯示的藥局',
+          '-右下角搖桿圖示可前往您的位置',
+          '-最右下角方塊圖示可開啟尋列',
+          '-1.1版',
         ];
       }
       this.$refs.modal.openModal();
@@ -584,20 +596,27 @@ export default {
       return this.rapidTestData.filter((pharmacy) => pharmacy.properties.count >= 38);
     },
   },
-  created() {},
   mounted() {
     async function renderMap() {
       try {
         const position = await this.getCurrentPosition();
         this.location.latitude = position.coords.latitude;
         this.location.longitude = position.coords.longitude;
-        this.getLocationSucess = true;
         this.rapidTestData = await this.getPharmacyData();
         this.sortPharmacyData();
         this.initMap();
         this.addMapLayer();
         this.addMapMarkers();
-        this.toMyLocation();
+        myLocationMarker = L.marker([this.location.latitude, this.location.longitude], {
+          icon: blueIcon,
+        }).bindPopup(`
+      <div><p class="fs-5 text-danger fw-bold text-shadow-white pt-4"><i class="bi bi-emoji-laughing-fill me-1"></i>我的位置</p></div>`);
+        osmMap.addLayer(myLocationMarker);
+        myLocationMarker.addTo(osmMap);
+        osmMap.setView([this.location.latitude, this.location.longitude], 16);
+        myLocationMarker.openPopup();
+        this.isLoading = false;
+        this.welcomeMessage(this.getLocationSucess);
       } catch (err) {
         if (err?.message === 'User denied Geolocation') {
           this.getLocationSucess = false;
@@ -614,6 +633,8 @@ export default {
           myLocationMarker.addTo(osmMap);
           osmMap.setView([this.location.latitude, this.location.longitude], 16);
           myLocationMarker.openPopup();
+          this.isLoading = false;
+          this.welcomeMessage(this.getLocationSucess);
           return;
         }
         this.message = ['抱歉，發生錯誤，請重新整理'];
@@ -621,10 +642,10 @@ export default {
       }
     }
     renderMap.bind(this)();
-    setTimeout(() => {
-      this.isLoading = false;
-      this.welcomeMessage(this.getLocationSucess);
-    }, 2000);
+    // First we get the viewport height and we multiple it by 1% to get a value for a vh unit
+    const vh = window.innerHeight * 0.01;
+    // Then we set the value in the --vh custom property to the root of the document
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
   },
 };
 </script>
@@ -636,6 +657,7 @@ export default {
 
 #map {
   height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
 }
 .marker-cluster-small {
   background-color: rgba(20, 134, 228, 0.2);

@@ -1,90 +1,118 @@
 $utilities: map-merge(
   $utilities,
   (
-    "text-shadow": (
-        property: text-shadow,
-        class: text-shadow,
-        responsive: true,
-        values: (
-          null: rgb(214, 212, 212) 0.1em 0.1em 0.2em,
-          white: rgb(0, 0, 0) 0.1em 0.1em 0.2em//rgba(255, 255, 255, 0.1) 0rem 0rem 0.1rem,
-        ),
+    'text-shadow': (
+      property: text-shadow,
+      class: text-shadow,
+      responsive: true,
+      values: (
+        null: rgb(214, 212, 212) 0.1em 0.1em 0.2em,
+        white: rgb(0, 0, 0) 0.1em 0.1em 0.2em
+          //rgba(255, 255, 255, 0.1) 0rem 0rem 0.1rem,,,
       ),
-      "opacity": (
-    property: opacity,
-    values: (
-      0: 0,
-      10: .1,
-      25: .25,
-      50: .5,
-      75: .75,
-      100: 1,
-    )
-  ),
-  "scale-y": (
+    ),
+    'opacity': (
+      property: opacity,
+      values: (
+        0: 0,
+        10: 0.1,
+        25: 0.25,
+        50: 0.5,
+        75: 0.75,
+        100: 1,
+      ),
+    ),
+    'scale-y': (
       property: transform,
       class: scale-y,
       responsive: true,
       values: (
-        2: scaleY(2.0),
-        3: scaleY(3.0),
-        4: scaleY(4.0),
-        5: scaleY(5.0),
-        6: scaleY(6.0),
+        2: scaleY(2),
+        3: scaleY(3),
+        4: scaleY(4),
+        5: scaleY(5),
+        6: scaleY(6),
       ),
     ),
-  "scale-x": (
+    'scale-x': (
       property: transform,
       class: scale-x,
       responsive: true,
       values: (
-        2: scaleX(2.0),
-        3: scaleX(3.0),
-        4: scaleX(4.0),
-        5: scaleX(5.0),
-        6: scaleX(6.0),
+        2: scaleX(2),
+        3: scaleX(3),
+        4: scaleX(4),
+        5: scaleX(5),
+        6: scaleX(6),
       ),
     ),
-  " transform-origin": (
-      property:  transform-origin,
-      class:  transform-origin,
+    ' transform-origin': (
+      property: transform-origin,
+      class: transform-origin,
       responsive: true,
       values: (
         bottom: bottom,
       ),
     ),
-    "z-index": (
+    'z-index': (
       property: z-index,
       class: z-index,
       responsive: true,
       values: 1 2 3 4 5 999 1999 2999,
     ),
-    "overflow-y": (
+    'overflow-y': (
       property: overflow-y,
-      values: auto hidden visible scroll ,
+      values: auto hidden visible scroll,
     ),
-    "width": map-merge(
-      map-get($utilities, "width"),
-      (      
+    'width':
+      map-merge(
+        map-get($utilities, 'width'),
+        (
+          responsive: true,
+          values: (
+            0: 0%,
+            5: 5%,
+            10: 10%,
+            15: 15%,
+            20: 20%,
+            25: 25%,
+            30: 30%,
+            35: 35%,
+            40: 40%,
+            45: 45%,
+            50: 50%,
+            60: 60%,
+            70: 70%,
+            75: 75%,
+            100: 100%,
+            auto: auto,
+          ),
+        )
+      ),
+      'height': (
+        property: height,
+        class: height,
         responsive: true,
         values: (
-        5: 5%,
-        10: 10%,
-        15: 15%,
-        20: 20%,
-        25: 25%,
-        30: 30%,
-        35: 35%,
-        40: 40%,
-        45: 45%,
-        50: 50%,
-        60: 60%,
-        70: 70%,
-        75: 75%,
-        100: 100%,
-        auto: auto
-      )
+          0: 0px,
+          352: 352px,
+        ),
       ),
-    ),
+      'rotate': (
+        property:transform,
+        class: rotate,
+        responsive: true,
+        values: (          
+          180: rotate(180deg),
+        ),
+      ),
+      'transition': (
+        property:transition,
+        class: transition,
+        responsive: true,
+        values: (          
+          null: all 0.5s,
+        ),
+      ),
   )
 );
