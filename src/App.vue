@@ -520,6 +520,7 @@ export default {
       addFullMarkers.bind(this)();
     },
     toMyLocation() {
+      this.Loading = true;
       if (myLocationMarker) {
         osmMap.removeLayer(myLocationMarker);
       }
@@ -535,6 +536,7 @@ export default {
           myLocationMarker.addTo(osmMap);
           osmMap.setView([this.location.latitude, this.location.longitude], 16);
           myLocationMarker.openPopup();
+          this.Loading = false;
         })
         .catch(() => {
           this.message = ['抱歉，無法取得您的所在，請檢查您的裝置，先定位高雄附近'];
@@ -549,6 +551,7 @@ export default {
           myLocationMarker.addTo(osmMap);
           osmMap.setView([this.location.latitude, this.location.longitude], 16);
           myLocationMarker.openPopup();
+          this.Loading = false;
         });
     },
     panToLocation(location) {
@@ -566,7 +569,7 @@ export default {
           '歡迎使用快篩地圖!!',
           '-右上角圖層圖示可選擇要顯示的藥局',
           '-右下角搖桿圖示可前往您的位置',
-          '-最右下角方塊圖示可開啟尋列',
+          '-最右下角方塊圖示可開啟搜尋列',
           '-1.1版',
         ];
       } else {
@@ -576,7 +579,7 @@ export default {
           '歡迎使用快篩地圖!!',
           '-右上角圖層圖示可選擇要顯示的藥局',
           '-右下角搖桿圖示可前往您的位置',
-          '-最右下角方塊圖示可開啟尋列',
+          '-最右下角方塊圖示可開啟搜尋列',
           '-1.1版',
         ];
       }
